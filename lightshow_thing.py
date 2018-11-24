@@ -18,11 +18,12 @@ class LightShowThing(Thing):
 
         self.on = False
         self.music = False
+        self.turn_off()
 
         self.add_property(
             Property(self,
                  'on',
-                 Value(self.get_onoff(), self.set_onoff),
+                 Value(self.get_onoff, self.set_onoff),
                  metadata={
                      '@type': 'OnOffProperty',
                      'label': 'On/Off',
@@ -32,9 +33,9 @@ class LightShowThing(Thing):
         self.add_property(
             Property(self,
                  'music',
-                 Value(self.get_music(), self.set_music),
+                 Value(self.get_music, self.set_music),
                  metadata={
-                     '@type': 'OnOffProperty',
+                     '@type': 'BooleanProperty',
                      'label': 'React To Music',
                      'type': 'boolean',
                      'description': 'React to Music or not',
@@ -62,31 +63,30 @@ class LightShowThing(Thing):
             return
 
         self.music = onoff
+        if self.on == False:
+            return
+
         if self.music:
             self.start_music()
         else:
             self.stop_music()
 
     def turn_on(self):
-        os.system('pkill -f "bash $SYNCHRONIZED_LIGHTS_HOME/bin"')
-        os.system('pkill -f "python $SYNCHRONIZED_LIGHTS_HOME/py"')
-        os.system("python ${SYNCHRONIZED_LIGHTS_HOME}/py/hardware_controller.py --state=on")
+        if self.music:
+            self.start_music()
+        else:
+            os.system('pkill -f "bash $SYNCHRONIZED_LIGHTS_HOME/bin"')
+            os.system('pkill -f "python $SYNCHRONIZED_LIGHTS_HOME/py"')
+            os.system("python ${SYNCHRONIZED_LIGHTS_HOME}/py/hardware_controller.py --state=on")
 
     def turn_off(self):
-        if self.music == True:
-            music = self.find_property('music')
-            self.music== False
-            music.value.notify_of_external_update(False) 
-
         os.system('pkill -f "bash $SYNCHRONIZED_LIGHTS_HOME/bin"')
         os.system('pkill -f "python $SYNCHRONIZED_LIGHTS_HOME/py"')
         os.system("python ${SYNCHRONIZED_LIGHTS_HOME}/py/hardware_controller.py --state=off")
 
     def start_music(self):
         if self.on == False:
-            onoff = self.find_property('on')
-            self.on == True
-            onoff.value.notify_of_external_update(True) 
+            return;
 
         os.system('pkill -f "bash $SYNCHRONIZED_LIGHTS_HOME/bin"')
         os.system('pkill -f "python $SYNCHRONIZED_LIGHTS_HOME/py"')
@@ -102,6 +102,8 @@ class LightShowThing(Thing):
 
 def run_server():
     thing = LightShowThing()
+    thing.set_property('on', False)
+    thing.set_property('music', False)
 
     # In the single thing case, the thing's name will be broadcast.
     server = WebThingServer(SingleThing(thing), port=8888)
