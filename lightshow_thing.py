@@ -8,6 +8,13 @@ import uuid
 import os
 import subprocess
 
+import RPi.GPIO as GPIO
+
+def Shutdown(channel): 
+  print ("shutting down ...")
+  os.system("sudo shutdown -h now") 
+
+
 HOME_DIR = os.getenv("SYNCHRONIZED_LIGHTS_HOME")
 
 class LightShowThing(Thing):
@@ -90,6 +97,9 @@ class LightShowThing(Thing):
 
         os.system('pkill -f "bash $SYNCHRONIZED_LIGHTS_HOME/bin"')
         os.system('pkill -f "python $SYNCHRONIZED_LIGHTS_HOME/py"')
+
+        os.system('amixer set Speaker playback 90%')
+
         os.system("${SYNCHRONIZED_LIGHTS_HOME}/bin/play_sms &")
         os.system("${SYNCHRONIZED_LIGHTS_HOME}/bin/check_sms &")
 
@@ -102,7 +112,8 @@ class LightShowThing(Thing):
 
 def run_server():
     thing = LightShowThing()
-    thing.set_property('on', False)
+    thing.set_property('on', True)
+    thing.turn_on()
     thing.set_property('music', False)
 
     # In the single thing case, the thing's name will be broadcast.
@@ -121,4 +132,14 @@ if __name__ == '__main__':
         level=10,
         format="%(asctime)s %(filename)s:%(lineno)s %(levelname)s %(message)s"
     )
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(14,GPIO.OUT)
+    GPIO.output(14,GPIO.HIGH)
+
+    print ("setting led on")
+    GPIO.setup(21, GPIO.IN, pull_up_down = GPIO.PUD_UP)  
+
+    # Add our function to execute when the button pressed event happens 
+    GPIO.add_event_detect(21, GPIO.FALLING, callback = Shutdown, bouncetime = 2000)  
+
     run_server()
